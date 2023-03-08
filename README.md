@@ -215,7 +215,7 @@ terraform {
   required_providers {
     onelogin = {
       source  = "jmfwolf/onelogin"
-      version = ">= 2.0.1" 
+      version = ">= version = "0.3.5" 
     }
   }
 }
