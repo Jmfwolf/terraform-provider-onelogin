@@ -214,7 +214,7 @@ export OTF_VAR_onelogin_PLUGIN_CONFIGURATION_FILE="https://api.service.com/opena
 terraform {
   required_providers {
     onelogin = {
-      source  = "onelogin/onelogin"
+      source  = "jmfwolf/onelogin"
       version = ">= 2.0.1" 
     }
   }
