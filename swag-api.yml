@@ -467,7 +467,12 @@ paths:
         '200':
           description: Successful response
           schema:
-            $ref: '#/definitions/privilege'
+            properties:
+              id:
+                description: Privilege Id
+                example: 5e43a548-e9c6-47be-9341-92160902f7a6
+                type: string
+            type: object
         '400':
           description: Bad Request
           examples:
@@ -524,6 +529,7 @@ paths:
       description: List Privileges
       operationId: listPriveleges
       summary: List Privileges
+    
   '/api/1/privileges/{privilege_id}':
     get:
       produces:
@@ -1305,7 +1311,6 @@ paths:
           type: boolean
         - in: body
           name: body
-          required: true
           schema:
             $ref: '#/definitions/user'
       responses:
@@ -1528,7 +1533,7 @@ paths:
         - Users V1
       description: List Users
       operationId: listUsers
-      summary: List Users 
+      summary: List Users
   '/api/1/users/{user_id}':
     get:
       produces:
@@ -1699,6 +1704,276 @@ paths:
       description: Update a User
       operationId: updateUser
       summary: Update a User
+
+  /api/1/users/custom_attributes:
+    get:
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            properties:
+              data:
+                description: >-
+                  Provides a list of custom attribute fields (also known as
+                  custom user fields) that are available for your account.
+
+                  The values returned correspond to the values you provided in
+                  the Shortname field when you defined the custom user field.
+
+                  For details about defining custom user fields, see Custom User
+                  Fields.
+                example:
+                  - - alias
+                    - branch
+                items:
+                  items:
+                    type: string
+                  type: array
+                type: array
+              status:
+                $ref: '#/definitions/Error'
+            type: object
+        '400':
+          description: Bad Request
+          examples:
+            application/json:
+              code: 400
+              error: true
+              message: Request Failure
+              type: bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              code: 401
+              error: true
+              message: Unauthorized Error
+              type: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+      security:
+        - OAuth2:
+            - Manage users
+            - Manage All
+            - Read All
+            - Read Users
+      tags:
+        - Users V1
+      description: Get Custom Attributes
+      operationId: getCustomAttributes
+      summary: Get Custom Attributes
+  '/api/1/users/set_password_clear_text/{user_id}':
+    put:
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - description: Set to the id of the user that you want to return.
+          in: path
+          name: user_id
+          required: true
+          type: integer
+        - in: body
+          name: body
+          schema:
+            properties:
+              password:
+                description: >-
+                  Set to the password value using cleartext.
+
+                  Hashes are never stored as cleartext. They are stored securely
+                  using cryptographic hash. OneLogin continuously upgrades the
+                  strength of the hash. Ensure that the value meets the password
+                  strength requirements set for the account.
+                example: <password>
+                type: string
+              password_confirmation:
+                description: Ensure that this value matches the password value exactly.
+                example: <password_confirmation>
+                type: string
+              validate_policy:
+                default: false
+                description: >-
+                  Will passwords validate against the User Policy. Defaults to
+                  false.
+                example: false
+                type: boolean
+            required:
+              - password
+              - password_confirmation
+            type: object
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Error'
+        '400':
+          description: Bad Request
+          examples:
+            application/json:
+              code: 400
+              error: true
+              message: Request Failure
+              type: bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              code: 401
+              error: true
+              message: Unauthorized Error
+              type: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        '403':
+          description: Forbidden
+          examples:
+            application/json:
+              code: 403
+              error: true
+              message: not allowed
+              type: ForbiddenError
+          schema:
+            $ref: '#/definitions/Error'
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              code: 404
+              error: true
+              message: No Route Exists
+              type: Not Found
+          schema:
+            $ref: '#/definitions/Error'
+      security:
+        - OAuth2:
+            - Manage All
+      tags:
+        - Users V1
+      description: >-
+        Update User password using their ID. This is done in cleartext and is
+        insecure.
+      operationId: updatePasswordInsecure
+      summary: Set Password Using ID in Cleartext
+  '/api/1/users/set_password_using_salt/{user_id}':
+    put:
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - description: Set to the id of the user that you want to return.
+          in: path
+          name: user_id
+          required: true
+          type: integer
+        - in: body
+          name: body
+          schema:
+            properties:
+              password:
+                description: >-
+                  Set to the password value using a SHA-256-encoded value. If
+                  you are including your own password_salt value in your
+                  request, prepend the salt value to the cleartext password
+                  value before SHA-256-encoding it.
+
+                  For example, if your salt value is hello and your cleartext
+                  password value is password, the value you need to
+                  SHA-256-encode is hellopassword. The resulting encoded value
+                  would be
+                  b1c788abac15390de987ad17b65ac73c9b475d428a51f245c645a442fddd078b.
+
+                  Note that the alpha characters in this has must all be lower
+                  case.
+                example: xxxxx637aead4030a653f29dae62f1542d67484342c00627a65066e05c5f0
+                type: string
+              password_algorithm:
+                description: Set to salt+sha256.
+                example: salt+sha256
+                type: string
+              password_confirmation:
+                description: This value must match the password value.
+                example: xxxxx637aead4030a653f29dae62f1542d67484342c00627a65066e05c5f0
+                type: string
+              password_salt:
+                description: >-
+                  Optional. If your password hash has been salted then you can
+                  provide the salt used in this param.
+
+                  This assumes that the salt was prepended to the password
+                  before doing the SHA256 hash.
+
+                  The API supports a salt value that is up to 40 characters
+                  long.
+                example: 11xxxx1
+                type: string
+            required:
+              - password
+              - password_confirmation
+              - password_algorithm
+            type: object
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Error'
+        '400':
+          description: Bad Request
+          examples:
+            application/json:
+              code: 400
+              error: true
+              message: Request Failure
+              type: bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              code: 401
+              error: true
+              message: Unauthorized Error
+              type: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        '403':
+          description: Forbidden
+          examples:
+            application/json:
+              code: 403
+              error: true
+              message: not allowed
+              type: ForbiddenError
+          schema:
+            $ref: '#/definitions/Error'
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              code: 404
+              error: true
+              message: No Route Exists
+              type: Not Found
+          schema:
+            $ref: '#/definitions/Error'
+      security:
+        - OAuth2:
+            - Manage All
+      tags:
+        - Users V1
+      description: Update User Password Using ID and SHA-256 with salt.
+      operationId: updatePasswordSecure
+      summary: Set Password Using ID and SHA-256 and Salt
   '/api/1/users/{user_id}/add_roles':
     put:
       consumes:
@@ -2326,34 +2601,7 @@ paths:
         - in: body
           name: body
           schema:
-            properties:
-              display_name:
-                description: A name for the users device
-                example: Rich's Phone
-                type: string
-              factor_id:
-                description: The identifier of the factor to enroll the user with.
-                example: 16282
-                type: integer
-              number:
-                description: The phone number of the user in E.164 format.
-                example: +1xxxxxxxxxx
-                type: string
-              verified:
-                description: >-
-                  Defaults to false. Some factors like SMS or Voice require that
-                  a user recieve a token and then that token is supplied to the
-                  Verify endpoint before the device is considered active.
-
-                  You can set verfied to `true` which indicates the the users
-                  phone number is pre verified and the device can be immediately
-                  activated.           
-                type: boolean
-            required:
-              - factor_id
-              - display_name
-              - number
-            type: object
+            $ref: '#/definitions/otp_device'
       responses:
         '200':
           description: Successful response
@@ -2973,275 +3221,6 @@ paths:
       description: Set User State
       operationId: setUserState
       summary: Set User State
-  /api/1/users/custom_attributes:
-    get:
-      produces:
-        - application/json
-      parameters: []
-      responses:
-        '200':
-          description: Successful response
-          schema:
-            properties:
-              data:
-                description: >-
-                  Provides a list of custom attribute fields (also known as
-                  custom user fields) that are available for your account.
-
-                  The values returned correspond to the values you provided in
-                  the Shortname field when you defined the custom user field.
-
-                  For details about defining custom user fields, see Custom User
-                  Fields.
-                example:
-                  - - alias
-                    - branch
-                items:
-                  items:
-                    type: string
-                  type: array
-                type: array
-              status:
-                $ref: '#/definitions/Error'
-            type: object
-        '400':
-          description: Bad Request
-          examples:
-            application/json:
-              code: 400
-              error: true
-              message: Request Failure
-              type: bad request
-          schema:
-            $ref: '#/definitions/Error'
-        '401':
-          description: Unauthorized
-          examples:
-            application/json:
-              code: 401
-              error: true
-              message: Unauthorized Error
-              type: Unauthorized
-          schema:
-            $ref: '#/definitions/Error'
-      security:
-        - OAuth2:
-            - Manage users
-            - Manage All
-            - Read All
-            - Read Users
-      tags:
-        - Users V1
-      description: Get Custom Attributes
-      operationId: getCustomAttributes
-      summary: Get Custom Attributes
-  '/api/1/users/set_password_clear_text/{user_id}':
-    put:
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - description: Set to the id of the user that you want to return.
-          in: path
-          name: user_id
-          required: true
-          type: integer
-        - in: body
-          name: body
-          schema:
-            properties:
-              password:
-                description: >-
-                  Set to the password value using cleartext.
-
-                  Hashes are never stored as cleartext. They are stored securely
-                  using cryptographic hash. OneLogin continuously upgrades the
-                  strength of the hash. Ensure that the value meets the password
-                  strength requirements set for the account.
-                example: <password>
-                type: string
-              password_confirmation:
-                description: Ensure that this value matches the password value exactly.
-                example: <password_confirmation>
-                type: string
-              validate_policy:
-                default: false
-                description: >-
-                  Will passwords validate against the User Policy. Defaults to
-                  false.
-                example: false
-                type: boolean
-            required:
-              - password
-              - password_confirmation
-            type: object
-      responses:
-        '200':
-          description: Successful response
-          schema:
-            $ref: '#/definitions/Error'
-        '400':
-          description: Bad Request
-          examples:
-            application/json:
-              code: 400
-              error: true
-              message: Request Failure
-              type: bad request
-          schema:
-            $ref: '#/definitions/Error'
-        '401':
-          description: Unauthorized
-          examples:
-            application/json:
-              code: 401
-              error: true
-              message: Unauthorized Error
-              type: Unauthorized
-          schema:
-            $ref: '#/definitions/Error'
-        '403':
-          description: Forbidden
-          examples:
-            application/json:
-              code: 403
-              error: true
-              message: not allowed
-              type: ForbiddenError
-          schema:
-            $ref: '#/definitions/Error'
-        '404':
-          description: Not Found
-          examples:
-            application/json:
-              code: 404
-              error: true
-              message: No Route Exists
-              type: Not Found
-          schema:
-            $ref: '#/definitions/Error'
-      security:
-        - OAuth2:
-            - Manage All
-      tags:
-        - Users V1
-      description: >-
-        Update User password using their ID. This is done in cleartext and is
-        insecure.
-      operationId: updatePasswordInsecure
-      summary: Set Password Using ID in Cleartext
-  '/api/1/users/set_password_using_salt/{user_id}':
-    put:
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - description: Set to the id of the user that you want to return.
-          in: path
-          name: user_id
-          required: true
-          type: integer
-        - in: body
-          name: body
-          schema:
-            properties:
-              password:
-                description: >-
-                  Set to the password value using a SHA-256-encoded value. If
-                  you are including your own password_salt value in your
-                  request, prepend the salt value to the cleartext password
-                  value before SHA-256-encoding it.
-
-                  For example, if your salt value is hello and your cleartext
-                  password value is password, the value you need to
-                  SHA-256-encode is hellopassword. The resulting encoded value
-                  would be
-                  b1c788abac15390de987ad17b65ac73c9b475d428a51f245c645a442fddd078b.
-
-                  Note that the alpha characters in this has must all be lower
-                  case.
-                example: xxxxx637aead4030a653f29dae62f1542d67484342c00627a65066e05c5f0
-                type: string
-              password_algorithm:
-                description: Set to salt+sha256.
-                example: salt+sha256
-                type: string
-              password_confirmation:
-                description: This value must match the password value.
-                example: xxxxx637aead4030a653f29dae62f1542d67484342c00627a65066e05c5f0
-                type: string
-              password_salt:
-                description: >-
-                  Optional. If your password hash has been salted then you can
-                  provide the salt used in this param.
-
-                  This assumes that the salt was prepended to the password
-                  before doing the SHA256 hash.
-
-                  The API supports a salt value that is up to 40 characters
-                  long.
-                example: 11xxxx1
-                type: string
-            required:
-              - password
-              - password_confirmation
-              - password_algorithm
-            type: object
-      responses:
-        '200':
-          description: Successful response
-          schema:
-            $ref: '#/definitions/Error'
-        '400':
-          description: Bad Request
-          examples:
-            application/json:
-              code: 400
-              error: true
-              message: Request Failure
-              type: bad request
-          schema:
-            $ref: '#/definitions/Error'
-        '401':
-          description: Unauthorized
-          examples:
-            application/json:
-              code: 401
-              error: true
-              message: Unauthorized Error
-              type: Unauthorized
-          schema:
-            $ref: '#/definitions/Error'
-        '403':
-          description: Forbidden
-          examples:
-            application/json:
-              code: 403
-              error: true
-              message: not allowed
-              type: ForbiddenError
-          schema:
-            $ref: '#/definitions/Error'
-        '404':
-          description: Not Found
-          examples:
-            application/json:
-              code: 404
-              error: true
-              message: No Route Exists
-              type: Not Found
-          schema:
-            $ref: '#/definitions/Error'
-      security:
-        - OAuth2:
-            - Manage All
-      tags:
-        - Users V1
-      description: Update User Password Using ID and SHA-256 with salt.
-      operationId: updatePasswordSecure
-      summary: Set Password Using ID and SHA-256 and Salt
   /api/2/api_authorizations:
     post:
       consumes:
@@ -3256,7 +3235,6 @@ paths:
           x-example: application/json
         - in: body
           name: body
-          required: true
           schema:
             $ref: '#/definitions/auth_server'
       responses:
@@ -3318,6 +3296,7 @@ paths:
       description: List Authorization Servers
       operationId: listAuthServers
       summary: List Api Auth Servers
+    
   '/api/2/api_authorizations/{api_auth_id}':
     get:
       produces:
@@ -3422,7 +3401,7 @@ paths:
         '200':
           description: Successful response
           schema:
-            $ref: '#/definitions/id'
+            $ref: '#/definitions/auth_server'
         '401':
           description: Unauthorized
           examples:
@@ -3461,6 +3440,67 @@ paths:
       operationId: updateAuthServer
       summary: Update Api Auth Server
   '/api/2/api_authorizations/{api_auth_id}/claims':
+    post:
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - default: application/json
+          in: header
+          name: Content-Type
+          type: string
+          x-example: application/json
+        - in: path
+          name: api_auth_id
+          required: true
+          type: string
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/auth_claim'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/auth_claim'
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              message: This request requires Authentication
+              name: UnauthorizedError
+              statusCode: 401
+          schema:
+            $ref: '#/definitions/altErr'
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              message: >-
+                The resource can't be found or the server has not found anything
+                matching the Request-URI
+              name: NotFoundError
+              statusCode: 404
+          schema:
+            $ref: '#/definitions/altErr'
+        '422':
+          description: Unprocessable Entity
+          examples:
+            application/json:
+              message: invalid value in \"auth_method\"
+              name: UnprocessableEntityError
+              statusCode: 422
+          schema:
+            $ref: '#/definitions/altErr'
+      security:
+        - OAuth2:
+            - Manage All
+      tags:
+        - 'API Auth: Claims'
+      description: Create Authorization Claim
+      operationId: createAuthClaim
+      summary: Create Api Auth Server Claim
     get:
       produces:
         - application/json
@@ -3508,67 +3548,7 @@ paths:
       description: Get Authorization claims
       operationId: getAuthclaims
       summary: Get Api Auth Server claims
-    post:
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - default: application/json
-          in: header
-          name: Content-Type
-          type: string
-          x-example: application/json
-        - in: path
-          name: api_auth_id
-          required: true
-          type: string
-        - in: body
-          name: body
-          schema:
-            $ref: '#/definitions/auth_claim'
-      responses:
-        '200':
-          description: Successful response
-          schema:
-            $ref: '#/definitions/id'
-        '401':
-          description: Unauthorized
-          examples:
-            application/json:
-              message: This request requires Authentication
-              name: UnauthorizedError
-              statusCode: 401
-          schema:
-            $ref: '#/definitions/altErr'
-        '404':
-          description: Not Found
-          examples:
-            application/json:
-              message: >-
-                The resource can't be found or the server has not found anything
-                matching the Request-URI
-              name: NotFoundError
-              statusCode: 404
-          schema:
-            $ref: '#/definitions/altErr'
-        '422':
-          description: Unprocessable Entity
-          examples:
-            application/json:
-              message: invalid value in \"auth_method\"
-              name: UnprocessableEntityError
-              statusCode: 422
-          schema:
-            $ref: '#/definitions/altErr'
-      security:
-        - OAuth2:
-            - Manage All
-      tags:
-        - 'API Auth: Claims'
-      description: Create Authorization Claim
-      operationId: createAuthClaim
-      summary: Create Api Auth Server Claim
+    
   '/api/2/api_authorizations/{api_auth_id}/claims/{claim_id}':
     delete:
       produces:
@@ -3980,7 +3960,7 @@ paths:
           description: Successful response
           schema:
             items:
-              $ref: '#/definitions/auth_server'
+              $ref: '#/definitions/auth_scope'
             type: array
         '401':
           description: Unauthorized
@@ -4022,7 +4002,7 @@ paths:
         '200':
           description: Successful response
           schema:
-            $ref: '#/definitions/auth_id'
+            $ref: '#/definitions/auth_scope'
         '401':
           description: Unauthorized
           examples:
@@ -4188,7 +4168,6 @@ paths:
           x-example: application/json
         - in: body
           name: body
-          required: true
           schema:
             $ref: '#/definitions/generic-app'
       responses:
@@ -4392,6 +4371,60 @@ paths:
       description: Update App
       operationId: updateApp
       summary: Update App
+  '/api/2/apps/{app_id}/parameters/{parameter_id}':
+    delete:
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: app_id
+          required: true
+          type: integer
+        - in: path
+          name: parameter_id
+          required: true
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              message: This request requires Authentication
+              name: UnauthorizedError
+              statusCode: 401
+          schema:
+            $ref: '#/definitions/altErr'
+        '403':
+          description: Forbidden
+          examples:
+            application/json:
+              message: Not allowed to destroy specified resource
+              name: ForbiddenError
+              statusCode: 403
+          schema:
+            $ref: '#/definitions/altErr'
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              message: >-
+                The resource can't be found or the server has not found anything
+                matching the Request-URI
+              name: NotFoundError
+              statusCode: 404
+          schema:
+            $ref: '#/definitions/altErr'
+      security:
+        - OAuth2:
+            - Manage All
+            - Read All
+      tags:
+        - Apps
+      description: Delete Parameter from App
+      operationId: deleteAppParameter
+      summary: Delete Parameter from App
   '/api/2/apps/{app_id}/rules':
     post:
       consumes:
@@ -4405,14 +4438,13 @@ paths:
           type: integer
         - in: body
           name: body
-          required: true
           schema:
-            $ref: '#/definitions/rule'
+            $ref: '#/definitions/app_rule'
       responses:
         '201':
           description: CREATED
           schema:
-            $ref: '#/definitions/id'
+            $ref: '#/definitions/app_rule'
         '401':
           description: Unauthorized
           examples:
@@ -4537,7 +4569,7 @@ paths:
           description: Successful response
           schema:
             items:
-              $ref: '#/definitions/rule'
+              $ref: '#/definitions/app_rule'
             type: array
         '401':
           description: Unauthorized
@@ -4573,7 +4605,7 @@ paths:
         '200':
           description: Successful response
           schema:
-            $ref: '#/definitions/rule'
+            $ref: '#/definitions/app_rule'
         '401':
           description: Unauthorized
           examples:
@@ -4601,7 +4633,7 @@ paths:
         - App Rules
       description: Get App Rule
       operationId: getAppRule
-      summary: Get Rule
+      summary: Get App Rule
     delete:
       produces:
         - application/json
@@ -4644,7 +4676,7 @@ paths:
         - App Rules
       description: Delete App Rule
       operationId: deleteRule
-      summary: Delete Rule  
+      summary: Delete Rule
     put:
       consumes:
         - application/json
@@ -4662,12 +4694,12 @@ paths:
         - in: body
           name: body
           schema:
-            $ref: '#/definitions/rule'
+            $ref: '#/definitions/app_rule'
       responses:
         '200':
           description: Successful response
           schema:
-            $ref: '#/definitions/id'
+            $ref: '#/definitions/app_rule'
         '401':
           description: Unauthorized
           examples:
@@ -4694,6 +4726,7 @@ paths:
       description: Update App Rule.
       operationId: updateAppRule
       summary: Update Rule
+
   '/api/2/apps/{app_id}/rules/actions':
     get:
       produces:
@@ -4708,18 +4741,7 @@ paths:
           description: Successful response
           schema:
             items:
-              properties:
-                name:
-                  description: Name of the Action
-                  example: Set Role
-                  type: string
-                value:
-                  description: >-
-                    The unique identifier of the action. This should be used
-                    when defining actions for a User Mapping.
-                  example: add_role
-                  type: string
-              type: object
+              $ref: '#/definitions/rule_action'
             type: array
         '401':
           description: Unauthorized
@@ -4756,18 +4778,7 @@ paths:
           description: Successful response
           schema:
             items:
-              properties:
-                name:
-                  description: Name of the Action
-                  example: Set Role
-                  type: string
-                value:
-                  description: >-
-                    The unique identifier of the action. This should be used
-                    when defining actions for a User Mapping.
-                  example: add_role
-                  type: string
-              type: object
+              $ref: '#/definitions/rule_action'
             type: array
         '401':
           description: Unauthorized
@@ -4848,18 +4859,7 @@ paths:
           description: Successful response
           schema:
             items:
-              properties:
-                name:
-                  description: Name of the operator
-                  example: Administrators
-                  type: string
-                value:
-                  description: >-
-                    The condition operator value to use when creating or
-                    updating rules.
-                  example: '272445'
-                  type: string
-              type: object
+              $ref: '#/definitions/rule_condition'
             type: array
         '401':
           description: Unauthorized
@@ -4895,20 +4895,7 @@ paths:
         '200':
           description: Successful response
           schema:
-            items:
-              properties:
-                name:
-                  description: Name of the rule condition
-                  example: MemberOf
-                  type: string
-                value:
-                  description: >-
-                    The unique identifier of the condition. This should be used
-                    when defining conditions for a rule.
-                  example: member_of
-                  type: string
-              type: object
-            type: array
+            $ref: '#/definitions/rule_condition'
         '401':
           description: Unauthorized
           examples:
@@ -5031,7 +5018,6 @@ paths:
       parameters:
         - in: body
           name: body
-          required: true
           schema:
             $ref: '#/definitions/brand'
       responses:
@@ -5166,7 +5152,7 @@ paths:
         - Branding Service
       description: Delete Brand
       operationId: deleteBrand
-      summary: Delete Brand
+      summary: Delete Brand  
     put:
       consumes:
         - application/json
@@ -5234,7 +5220,6 @@ paths:
           type: string
         - in: body
           name: body
-          required: true
           schema:
             $ref: '#/definitions/message_template'
       responses:
@@ -5329,7 +5314,7 @@ paths:
         - 'Branding Service: Templates'
       description: List Message Templates
       operationId: listMessageTemplates
-      summary: List Message Templates
+      summary: List Message Templates    
   '/api/2/branding/brands/{brand_id}/templates/{template_id}':
     get:
       produces:
@@ -5459,6 +5444,7 @@ paths:
       description: Update Message Template by ID
       operationId: updateMessageTemplateById
       summary: Update Message Template
+
   '/api/2/branding/brands/master/templates/{template_type}':
     get:
       produces:
@@ -5791,6 +5777,620 @@ paths:
       description: List Connectors
       operationId: listConnectors
       summary: List Connectors
+  /api/2/hooks:
+    post:
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/hook'
+      responses:
+        '201':
+          description: CREATED
+          schema:
+            $ref: '#/definitions/hook'
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              message: This request requires Authentication
+              name: UnauthorizedError
+              statusCode: 401
+          schema:
+            $ref: '#/definitions/altErr'
+        '409':
+          description: Conflict
+          examples:
+            application/json:
+              message: This request requires Authentication
+              name: UnauthorizedError
+              statusCode: 409
+          schema:
+            $ref: '#/definitions/altErr'
+        '422':
+          description: You function is not base64 encoded.
+          examples:
+            application/json:
+              message: >-
+                instance additionalProperty \"name\" exists in instance when not
+                allowed
+              name: UnprocessableEntityError
+          schema:
+            $ref: '#/definitions/hook_status'
+      security:
+        - OAuth2:
+            - Manage All
+      tags:
+        - Smart Hooks
+      description: Create Smart Hook
+      operationId: createHook
+      summary: Create Smart Hook
+    get:
+      produces:
+        - application/json
+      parameters:
+        - description: How many items to return at one time (max 100)
+          format: int32
+          in: query
+          name: limit
+          required: false
+          type: integer
+        - description: The page number of results to return.
+          in: query
+          name: page
+          type: integer
+        - description: >-
+            Set to the value extracted from Before-Cursor or After-Cursor
+            headers to return the previous or next page.
+          in: query
+          name: cursor
+          type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            After-Cursor:
+              description: >-
+                A string that can be used to request the page of results that
+                follows the current page using the same set of search filters
+                and pagination options.
+              type: string
+            Before-Cursor:
+              description: >-
+                A string that can be used to request the page of results that
+                preceed the current page using the same set of search filters
+                and pagination options.
+              type: string
+            Current-Page:
+              description: The index number of the current page being returned.
+              type: integer
+            Link:
+              description: 'A set of urls which contains premade links for first, next'
+              type: array
+            Page-Items:
+              description: The number of items returned in the response.
+              type: integer
+            Total-Count:
+              description: The total number of items across all pages.
+              type: integer
+            Total-Pages:
+              description: The total number of pages to return all results.
+              type: integer
+          schema:
+            items:
+              $ref: '#/definitions/hook'
+            type: array
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              message: This request requires Authentication
+              name: UnauthorizedError
+              statusCode: 401
+          schema:
+            $ref: '#/definitions/altErr'
+      security:
+        - OAuth2:
+            - Manage All
+      tags:
+        - Smart Hooks
+      description: List Smart Hooks
+      operationId: listHooks
+      summary: List all Smart Hooks
+  '/api/2/hooks/{hook_id}':
+    get:
+      produces:
+        - application/json
+      parameters:
+        - description: Set to the id of the Hook that you want to return.
+          in: path
+          name: hook_id
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/hook'
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              message: This request requires Authentication
+              name: UnauthorizedError
+              statusCode: 401
+          schema:
+            $ref: '#/definitions/altErr'
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              message: >-
+                The resource can't be found or the server has not found anything
+                matching the Request-URI
+              name: NotFoundError
+              statusCode: 404
+          schema:
+            $ref: '#/definitions/altErr'
+      security:
+        - OAuth2:
+            - Manage All
+      tags:
+        - Smart Hooks
+      description: Get Smart Hook
+      operationId: getHook
+      summary: Get Smart Hook by ID
+    delete:
+      produces:
+        - application/json
+      parameters:
+        - description: Set to the id of the Hook that you want to return.
+          in: path
+          name: hook_id
+          required: true
+          type: string
+      responses:
+        '202':
+          description: >-
+            Success. The hook function has been queued for deletion. This
+            typically happens within seconds of making the request.
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              message: This request requires Authentication
+              name: UnauthorizedError
+              statusCode: 401
+          schema:
+            $ref: '#/definitions/altErr'
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              message: >-
+                The resource can't be found or the server has not found anything
+                matching the Request-URI
+              name: NotFoundError
+              statusCode: 404
+          schema:
+            $ref: '#/definitions/altErr'
+      security:
+        - OAuth2:
+            - Manage All
+            - Read All
+      tags:
+        - Smart Hooks
+      description: Delete Smart Hook
+      operationId: deleteHook
+      summary: Delete Smart Hook by ID
+    put:
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - description: Set to the id of the Hook that you want to return.
+          in: path
+          name: hook_id
+          required: true
+          type: string
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/hook'
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/hook'
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              message: This request requires Authentication
+              name: UnauthorizedError
+              statusCode: 401
+          schema:
+            $ref: '#/definitions/altErr'
+        '422':
+          description: You function is not base64 encoded.
+          examples:
+            application/json:
+              message: >-
+                instance additionalProperty \"name\" exists in instance when not
+                allowed
+              name: UnprocessableEntityError
+          schema:
+            $ref: '#/definitions/hook_status'
+      security:
+        - OAuth2:
+            - Manage All
+      tags:
+        - Smart Hooks
+      description: Update Smart Hook
+      operationId: updateHook
+      summary: Update Smart Hook by ID
+  /api/2/hooks/envs:
+    post:
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/hook_envvar'
+      responses:
+        '201':
+          description: CREATED
+          schema:
+            $ref: '#/definitions/hook_envvar'
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              message: This request requires Authentication
+              name: UnauthorizedError
+              statusCode: 401
+          schema:
+            $ref: '#/definitions/altErr'
+        '422':
+          description: Unprocessable Entity
+          examples:
+            application/json:
+              message: invalid value in \"auth_method\"
+              name: UnprocessableEntityError
+              statusCode: 422
+          schema:
+            $ref: '#/definitions/altErr'
+      security:
+        - OAuth2:
+            - Manage All
+      tags:
+        - Smart Hooks
+      description: Create Environment Variable
+      operationId: createEnvironmentVariable
+      summary: Create Environment Variable
+    get:
+      produces:
+        - application/json
+      parameters:
+        - description: How many items to return at one time (max 100)
+          format: int32
+          in: query
+          name: limit
+          required: false
+          type: integer
+        - description: The page number of results to return.
+          in: query
+          name: page
+          type: integer
+        - description: >-
+            Set to the value extracted from Before-Cursor or After-Cursor
+            headers to return the previous or next page.
+          in: query
+          name: cursor
+          type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            After-Cursor:
+              description: >-
+                A string that can be used to request the page of results that
+                follows the current page using the same set of search filters
+                and pagination options.
+              type: string
+            Before-Cursor:
+              description: >-
+                A string that can be used to request the page of results that
+                preceed the current page using the same set of search filters
+                and pagination options.
+              type: string
+            Current-Page:
+              description: The index number of the current page being returned.
+              type: integer
+            Link:
+              description: 'A set of urls which contains premade links for first, next'
+              type: array
+            Page-Items:
+              description: The number of items returned in the response.
+              type: integer
+            Total-Count:
+              description: The total number of items across all pages.
+              type: integer
+            Total-Pages:
+              description: The total number of pages to return all results.
+              type: integer
+          schema:
+            items:
+              $ref: '#/definitions/hook_envvar'
+            type: array
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              message: This request requires Authentication
+              name: UnauthorizedError
+              statusCode: 401
+          schema:
+            $ref: '#/definitions/altErr'
+      security:
+        - OAuth2:
+            - Manage All
+      tags:
+        - Smart Hooks
+      description: List Environment Variables
+      operationId: listEnvironmentVariables
+      summary: List Environment Variables
+    
+  '/api/2/hooks/envs/{envvar_id}':
+    get:
+      produces:
+        - application/json
+      parameters:
+        - description: >-
+            Set to the id of the Hook Environment Variable that you want to
+            fetch.
+          in: path
+          name: envvar_id
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/hook_envvar'
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              message: This request requires Authentication
+              name: UnauthorizedError
+              statusCode: 401
+          schema:
+            $ref: '#/definitions/altErr'
+      security:
+        - OAuth2:
+            - Manage All
+      tags:
+        - Smart Hooks
+      description: Get Environment Variable
+      operationId: getEnvironmentVariable
+      summary: Get Environment Variable
+    delete:
+      produces:
+        - application/json
+      parameters:
+        - description: >-
+            Set to the id of the Hook Environment Variable that you want to
+            fetch.
+          in: path
+          name: envvar_id
+          required: true
+          type: string
+      responses:
+        '204':
+          description: >-
+            Success. The environment variable has been deleted. No content is
+            returned.
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              message: This request requires Authentication
+              name: UnauthorizedError
+              statusCode: 401
+          schema:
+            $ref: '#/definitions/altErr'
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              message: >-
+                The resource can't be found or the server has not found anything
+                matching the Request-URI
+              name: NotFoundError
+              statusCode: 404
+          schema:
+            $ref: '#/definitions/altErr'
+      security:
+        - OAuth2:
+            - Manage All
+            - Read All
+      tags:
+        - Smart Hooks
+      description: Delete Environment Variable
+      operationId: deleteEnvironmentVariable
+      summary: Delete Environment Variable
+    put:
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - description: >-
+            Set to the id of the Hook Environment Variable that you want to
+            fetch.
+          in: path
+          name: envvar_id
+          required: true
+          type: string
+        - in: body
+          name: body
+          required: true
+          schema:
+            properties:
+              value:
+                description: >-
+                  The secret value that will be encrypted at rest and injected
+                  in applicable hook functions at run time.
+                type: string
+            required:
+              - value
+            type: object
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/hook_envvar'
+        '400':
+          description: Bad Request
+          examples:
+            application/json:
+              message: >-
+                The request could not be understood by the server due to
+                malformed syntax: Statement required Action array
+              name: BadRequestError
+              statusCode: 400
+          schema:
+            $ref: '#/definitions/altErr'
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              message: This request requires Authentication
+              name: UnauthorizedError
+              statusCode: 401
+          schema:
+            $ref: '#/definitions/altErr'
+        '422':
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/hook_status'
+      security:
+        - OAuth2:
+            - Manage All
+      tags:
+        - Smart Hooks
+      description: Update Environment Variable
+      operationId: updateEnvironmentVariable
+      summary: Update Environment Variable
+  '/api/2/hooks/{hook_id}/logs':
+    get:
+      produces:
+        - application/json
+      parameters:
+        - description: Set to the id of the Hook that you want to return.
+          in: path
+          name: hook_id
+          required: true
+          type: string
+        - description: How many items to return at one time (max 100)
+          format: int32
+          in: query
+          name: limit
+          required: false
+          type: integer
+        - description: The page number of results to return.
+          in: query
+          name: page
+          type: integer
+        - description: >-
+            Set to the value extracted from Before-Cursor or After-Cursor
+            headers to return the previous or next page.
+          in: query
+          name: cursor
+          type: string
+        - description: Returns logs that contain this request_id.
+          in: query
+          name: request_id
+          type: string
+        - description: Returns logs that contain this correlation_id.
+          in: query
+          name: correlation_id
+          type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            After-Cursor:
+              description: >-
+                A string that can be used to request the page of results that
+                follows the current page using the same set of search filters
+                and pagination options.
+              type: string
+            Before-Cursor:
+              description: >-
+                A string that can be used to request the page of results that
+                preceed the current page using the same set of search filters
+                and pagination options.
+              type: string
+            Current-Page:
+              description: The index number of the current page being returned.
+              type: integer
+            Link:
+              description: 'A set of urls which contains premade links for first, next'
+              type: array
+            Page-Items:
+              description: The number of items returned in the response.
+              type: integer
+            Total-Count:
+              description: The total number of items across all pages.
+              type: integer
+            Total-Pages:
+              description: The total number of pages to return all results.
+              type: integer
+          schema:
+            items:
+              $ref: '#/definitions/hook_log'
+            type: array
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              message: This request requires Authentication
+              name: UnauthorizedError
+              statusCode: 401
+          schema:
+            $ref: '#/definitions/altErr'
+        '404':
+          description: Not Found
+          examples:
+            application/json:
+              message: >-
+                The resource can't be found or the server has not found anything
+                matching the Request-URI
+              name: NotFoundError
+              statusCode: 404
+          schema:
+            $ref: '#/definitions/altErr'
+      security:
+        - OAuth2:
+            - Manage All
+      tags:
+        - Smart Hooks
+      description: Get Smart Hook Logs
+      operationId: getLogs
+      summary: Get Smart Hook Logs
   /api/2/mappings:
     post:
       consumes:
@@ -5805,7 +6405,6 @@ paths:
           x-example: application/json
         - in: body
           name: body
-          required: true
           schema:
             $ref: '#/definitions/mapping'
       responses:
@@ -5956,7 +6555,7 @@ paths:
         - User Mappings
       description: List Mappings
       operationId: listMappings
-      summary: List Mappings   
+      summary: List Mappings
   '/api/2/mappings/{mapping_id}':
     get:
       produces:
@@ -6039,7 +6638,7 @@ paths:
         - User Mappings
       description: Delete Mapping
       operationId: deleteMapping
-      summary: Delete Mapping
+      summary: Delete Mapping  
     put:
       consumes:
         - application/json
@@ -6095,6 +6694,7 @@ paths:
       description: Update Mapping
       operationId: updateMapping
       summary: Update Mapping
+  
   /api/2/mappings/actions:
     get:
       produces:
@@ -7241,6 +7841,36 @@ paths:
       operationId: trackRiskEvent
       summary: Track an Event
   /api/2/risk/rules:
+    get:
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/risk_rule'
+            type: array
+        '401':
+          description: Unauthorized
+          examples:
+            application/json:
+              code: 401
+              error: true
+              message: Unauthorized Error
+              type: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+      security:
+        - OAuth2:
+            - Manage All
+            - Read All
+      tags:
+        - Vigilance AI
+      description: List Vigilance AI (Risk Service) Rules
+      operationId: listRiskRules
+      summary: List Rules
     post:
       consumes:
         - application/json
@@ -7284,17 +7914,18 @@ paths:
       description: Create Vigilance AI (Risk Service) Rule
       operationId: createRiskRule
       summary: Create Rule
-    get:
+  '/api/2/risk/rules/{rule_id}':
+    delete:
       produces:
         - application/json
-      parameters: []
+      parameters:
+        - in: path
+          name: rule_id
+          required: true
+          type: string
       responses:
-        '200':
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/risk_rule'
-            type: array
+        '204':
+          description: Successful response
         '401':
           description: Unauthorized
           examples:
@@ -7311,10 +7942,9 @@ paths:
             - Read All
       tags:
         - Vigilance AI
-      description: List Vigilance AI (Risk Service) Rules
-      operationId: listRiskRules
-      summary: List Rules
-  '/api/2/risk/rules/{rule_id}':
+      description: Delete Vigilance AI (Risk Service)
+      operationId: deleteRiskRule
+      summary: Delete Rule
     get:
       produces:
         - application/json
@@ -7349,36 +7979,6 @@ paths:
         Sevice.
       operationId: getRiskRule
       summary: get Risk Rule
-    delete:
-      produces:
-        - application/json
-      parameters:
-        - in: path
-          name: rule_id
-          required: true
-          type: string
-      responses:
-        '204':
-          description: Successful response
-        '401':
-          description: Unauthorized
-          examples:
-            application/json:
-              code: 401
-              error: true
-              message: Unauthorized Error
-              type: Unauthorized
-          schema:
-            $ref: '#/definitions/Error'
-      security:
-        - OAuth2:
-            - Manage All
-            - Read All
-      tags:
-        - Vigilance AI
-      description: Delete Vigilance AI (Risk Service)
-      operationId: deleteRiskRule
-      summary: Delete Rule
     put:
       consumes:
         - application/json
@@ -7580,14 +8180,18 @@ paths:
       parameters:
         - in: body
           name: body
-          required: true
           schema:
             $ref: '#/definitions/role'
       responses:
         '201':
           description: CREATED
           schema:
-            $ref: '#/definitions/role'
+            items:
+              properties:
+                id:
+                  $ref: '#/definitions/id'
+              type: object
+            type: array
         '401':
           description: Unauthorized
           examples:
@@ -7699,6 +8303,7 @@ paths:
       description: List Roles
       operationId: listRoles
       summary: List Roles
+    
   '/api/2/roles/{role_id}':
     get:
       produces:
@@ -7793,6 +8398,7 @@ paths:
       description: Delete Role
       operationId: deleteRole
       summary: Delete Role by ID
+    
     put:
       consumes:
         - application/json
@@ -8563,414 +9169,6 @@ paths:
       description: 'Verify Factor: SAML'
       operationId: verFactorSaml2
       summary: Verify Factor SAML
-  /api/2/users:
-    post:
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - description: >-
-            Controls how mappings will be applied to the user on creation.
-            Defaults to async.
-          enum:
-            - async
-            - sync
-            - disabled
-          in: query
-          name: mappings
-          type: string
-        - description: Will passwords validate against the User Policy? Defaults to true.
-          in: query
-          name: validate_policy
-          type: boolean
-        - in: body
-          name: body
-          schema:
-            $ref: '#/definitions/user'
-      responses:
-        '201':
-          description: The full user resource is returned
-          schema:
-            $ref: '#/definitions/user'
-        '400':
-          description: Bad Request
-          examples:
-            application/json:
-              code: 400
-              error: true
-              message: Request Failure
-              type: bad request
-          schema:
-            $ref: '#/definitions/Error'
-        '401':
-          description: Unauthorized
-          examples:
-            application/json:
-              code: 401
-              error: true
-              message: Unauthorized Error
-              type: Unauthorized
-          schema:
-            $ref: '#/definitions/Error'
-        '422':
-          description: Unprocessable
-          examples:
-            application/json:
-              code: 422
-              error: true
-              message: 'Validation failed: Value has already been taken'
-              type: UnprocessableEntityError
-          schema:
-            $ref: '#/definitions/Error'
-      tags:
-        - Users V2
-      description: Create User
-      operationId: createUser2
-      summary: Create User
-    get:
-      produces:
-        - application/json
-      parameters:
-        - description: How many items to return at one time (max 100)
-          format: int32
-          in: query
-          name: limit
-          required: false
-          type: integer
-        - description: The page number of results to return.
-          in: query
-          name: page
-          type: integer
-        - description: >-
-            Set to the value extracted from Before-Cursor or After-Cursor
-            headers to return the previous or next page.
-          in: query
-          name: cursor
-          type: string
-        - description: >-
-            An ISO8601 timestamp value that returns all users created after a
-            given date & time.
-          in: query
-          name: created_since
-          type: string
-        - description: >-
-            An ISO8601 timestamp value that returns all users created before a
-            given date & time.
-          in: query
-          name: created_until
-          type: string
-        - description: >-
-            An ISO8601 timestamp value that returns all users updated after a
-            given date & time.
-          in: query
-          name: updated_since
-          type: string
-        - description: >-
-            An ISO8601 timestamp value that returns all users updated before a
-            given date & time.
-          in: query
-          name: updated_until
-          type: string
-        - description: >-
-            An ISO8601 timestamp value that returns all users that logged in
-            after a given date & time.
-          in: query
-          name: last_login_since
-          type: string
-        - description: >-
-            An ISO8601 timestamp value that returns all users that logged in
-            before a given date & time.
-          in: query
-          name: last_login_until
-          type: string
-        - description: The first name of the user
-          in: query
-          name: firstname
-          type: string
-        - description: The last name of the user
-          in: query
-          name: lastname
-          type: string
-        - description: The email address of the user
-          in: query
-          name: email
-          type: string
-        - description: The username for the user
-          in: query
-          name: username
-          type: string
-        - description: The AD login name for the user
-          in: query
-          name: samaccountname
-          type: string
-        - in: query
-          name: directory_id
-          type: integer
-        - description: An external identifier that has been set on the user
-          in: query
-          name: external_id
-          type: string
-        - description: A comma separated list of OneLogin User IDs
-          in: query
-          name: user_ids
-          type: string
-        - description: >-
-            The short name of a custom attribute. Note that the attribute name
-            is prefixed with custom_attributes.
-          in: query
-          name: 'custom_attributes.{attribute_name}'
-          type: string
-        - description: Optional. Comma delimited list of fields to return.
-          enum:
-            - apps
-            - users
-            - admins
-          in: query
-          name: fields
-          type: string
-      responses:
-        '200':
-          description: OK
-          headers:
-            After-Cursor:
-              description: >-
-                A string that can be used to request the page of results that
-                follows the current page using the same set of search filters
-                and pagination options.
-              type: string
-            Before-Cursor:
-              description: >-
-                A string that can be used to request the page of results that
-                preceed the current page using the same set of search filters
-                and pagination options.
-              type: string
-            Current-Page:
-              description: The index number of the current page being returned.
-              type: integer
-            Link:
-              description: 'A set of urls which contains premade links for first, next'
-              type: array
-            Page-Items:
-              description: The number of items returned in the response.
-              type: integer
-            Total-Count:
-              description: The total number of items across all pages.
-              type: integer
-            Total-Pages:
-              description: The total number of pages to return all results.
-              type: integer
-          schema:
-            items:
-              $ref: '#/definitions/user'
-            type: array
-        '400':
-          description: Bad Request
-          examples:
-            application/json:
-              code: 400
-              error: true
-              message: Request Failure
-              type: bad request
-          schema:
-            $ref: '#/definitions/Error'
-        '401':
-          description: Unauthorized
-          examples:
-            application/json:
-              code: 401
-              error: true
-              message: Unauthorized Error
-              type: Unauthorized
-          schema:
-            $ref: '#/definitions/Error'
-        '422':
-          description: Unprocessable
-          examples:
-            application/json:
-              code: 422
-              error: true
-              message: 'Validation failed: Value has already been taken'
-              type: UnprocessableEntityError
-          schema:
-            $ref: '#/definitions/Error'
-      security:
-        - OAuth2:
-            - Manage users
-            - Manage All
-            - Read All
-            - Read Users
-      tags:
-        - Users V2
-      description: Get a list of users
-      operationId: listUsers2
-      summary: List Users
-  '/api/2/users/{user_id}':
-    get:
-      produces:
-        - application/json
-      parameters:
-        - description: Set to the id of the user that you want to return.
-          in: path
-          name: user_id
-          required: true
-          type: integer
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/user'
-        '400':
-          description: Bad Request
-          examples:
-            application/json:
-              code: 400
-              error: true
-              message: Request Failure
-              type: bad request
-          schema:
-            $ref: '#/definitions/Error'
-        '404':
-          description: Not Found
-          examples:
-            application/json:
-              code: 404
-              error: true
-              message: No Route Exists
-              type: Not Found
-          schema:
-            $ref: '#/definitions/Error'
-      security:
-        - OAuth2:
-            - Manage users
-            - Manage All
-            - Read All
-            - Read Users
-      tags:
-        - Users V2
-      description: Get User
-      operationId: getUser2
-      summary: Get User
-    delete:
-      produces:
-        - application/json
-      parameters:
-        - description: Set to the id of the user that you want to return.
-          in: path
-          name: user_id
-          required: true
-          type: integer
-      responses:
-        '204':
-          description: 'On success, no content is returned in the response body.'
-        '401':
-          description: Unauthorized
-          examples:
-            application/json:
-              code: 401
-              error: true
-              message: Unauthorized Error
-              type: Unauthorized
-          schema:
-            $ref: '#/definitions/Error'
-        '404':
-          description: Not Found
-          examples:
-            application/json:
-              code: 404
-              error: true
-              message: No Route Exists
-              type: Not Found
-          schema:
-            $ref: '#/definitions/Error'
-      security:
-        - OAuth2:
-            - Manage users
-            - Manage All
-      tags:
-        - Users V2
-      description: Delete User
-      operationId: deleteUser2
-      summary: Delete User
-    put:
-      consumes:
-        - application/json
-      produces:
-        - application/json
-      parameters:
-        - description: Set to the id of the user that you want to return.
-          in: path
-          name: user_id
-          required: true
-          type: integer
-        - description: >-
-            Controls how mappings will be applied to the user on creation.
-            Defaults to async.
-          enum:
-            - async
-            - sync
-            - disabled
-          in: query
-          name: mappings
-          type: string
-        - description: Will passwords validate against the User Policy? Defaults to true.
-          in: query
-          name: validate_policy
-          type: boolean
-        - in: body
-          name: body
-          schema:
-            $ref: '#/definitions/user'
-      responses:
-        '200':
-          description: The full user resource is returned
-          schema:
-            $ref: '#/definitions/user'
-        '400':
-          description: Bad Request
-          examples:
-            application/json:
-              code: 400
-              error: true
-              message: Request Failure
-              type: bad request
-          schema:
-            $ref: '#/definitions/Error'
-        '401':
-          description: Unauthorized
-          examples:
-            application/json:
-              code: 401
-              error: true
-              message: Unauthorized Error
-              type: Unauthorized
-          schema:
-            $ref: '#/definitions/Error'
-        '404':
-          description: Not Found
-          examples:
-            application/json:
-              code: 404
-              error: true
-              message: No Route Exists
-              type: Not Found
-          schema:
-            $ref: '#/definitions/Error'
-        '422':
-          description: Unprocessable
-          examples:
-            application/json:
-              code: 422
-              error: true
-              message: 'Validation failed: Value has already been taken'
-              type: UnprocessableEntityError
-          schema:
-            $ref: '#/definitions/Error'
-      tags:
-        - Users V2
-      description: Update User
-      operationId: updateUser2
-      summary: Update User
   '/api/2/users/{user_id}/apps':
     get:
       produces:
@@ -9366,6 +9564,43 @@ definitions:
           for custom attribute `employee_id` use `custom_attribute_employee_id`.
         type: string
     type: object
+  app_rule:
+    properties:
+      actions:
+        items:
+          $ref: '#/definitions/action_obj'
+        type: array
+      conditions:
+        description: >-
+          An array of conditions that the user must meet in order for the rule
+          to be applied.
+        items:
+          $ref: '#/definitions/condition'
+        type: array
+      enabled:
+        description: Indicates if the rule is enabled or not.
+        type: boolean
+      id:
+        description: App Rule ID
+        example: 196670
+        type: integer
+      match:
+        description: Indicates how conditions should be matched.
+        enum:
+          - all
+          - any
+        type: string
+      name:
+        description: Rule Name
+        example: My first app rule
+        type: string
+      position:
+        description: >-
+          Indicates the order of the rule. When `null` this will default to last
+          position.
+        example: 1
+        type: integer
+    type: object
   auth_claim:
     properties:
       name:
@@ -9423,6 +9658,11 @@ definitions:
         description: A description of what access the scope enables
         example: A custom scope
         type: string
+      id:
+        description: Unique ID for the Scope
+        example: 323005
+        readOnly: true
+        type: integer
       value:
         description: A value representing the api scope that with be authorized
         example: 'custom:scope'
@@ -9440,6 +9680,7 @@ definitions:
       id:
         description: Auth server unique ID in Onelogin
         example: 1022697
+        readOnly: true
         type: integer
       name:
         description: Name of the API.
@@ -10788,6 +11029,151 @@ definitions:
         example: 'null'
         type: string
     type: object
+  hook:
+    properties:
+      conditions:
+        description: >-
+          An array of objects that let you limit the execution of a hook to
+          users in specific roles.
+        items:
+          $ref: '#/definitions/condition'
+        type: array
+      context_version:
+        description: >-
+          The semantic version of the content that will be injected into this
+          hook.
+        type: string
+      created_at:
+        description: ISO8601 format date that they hook function was created.
+        type: string
+      disabled:
+        default: true
+        description: Boolean to enable or disable the hook. Disabled hooks will not run.
+        type: boolean
+      env_vars:
+        description: >-
+          Environment Variable objects that will be available via
+          process.env.ENV_VAR_NAME in the hook code.
+        items:
+          type: string
+        type: array
+      function:
+        description: A base64 encoded string containing the javascript function code.
+        type: string
+      id:
+        description: The Hook unique ID in OneLogin.
+        type: string
+      options:
+        description: >-
+          A set of attributes allow control over the information that is
+          included in the hook context.
+        properties:
+          location_enabled:
+            type: boolean
+          mfa_device_info_enabled:
+            type: boolean
+          risk_enabled:
+            type: boolean
+        type: object
+      packages:
+        description: >-
+          An object containing NPM packages that are bundled with the hook
+          function.
+
+        type: object
+        additionalProperties: true
+      retries:
+        default: 0
+        description: Number of retries if execution fails.
+        maximum: 4
+        type: integer
+      runtime:
+        description: The Smart Hooks supported Node.js version to execute this hook with.
+        type: string
+      status:
+        description: >-
+          String describing the state of the hook function. When a hook is ready
+          and disabled is false it will be executed.
+        enum:
+          - ready
+          - create-queued
+          - create-running
+          - create-failed
+          - update-queued
+          - update-running
+          - update-failed
+        type: string
+      timeout:
+        default: 1
+        description: >-
+          The number of seconds to allow the hook function to run before before
+          timing out. Maximum timeout varies based on the type of hook.
+        type: integer
+      type:
+        description: A string describing the type of hook. e.g. `pre-authentication`
+        type: string
+      updated_at:
+        description: ISO8601 format date that they hook function was last updated.
+        type: string
+    required:
+      - type
+      - disabled
+      - timeout
+      - env_vars
+      - runtime
+      - retries
+      - packages
+      - function
+    type: object
+  hook_envvar:
+    properties:
+      created_at:
+        description: The ISO8601 formatted date that the environment variable was created.
+        type: string
+      id:
+        description: A unique identifier for the Hook Environment Variable
+        readOnly: true
+        type: string
+      name:
+        description: The name of the environment variable.
+        type: string
+      updated_at:
+        description: >-
+          The ISO8601 formatted date that the environment variable was last
+          updated.
+        type: string
+      value:
+        description: >-
+          The secret value that will be encrypted at rest and injected in
+          applicable hook functions at run time.
+        type: string
+    required:
+      - name
+      - value
+    type: object
+  hook_log:
+    properties:
+      correlation_id:
+        type: string
+      created_at:
+        type: string
+      events:
+        items:
+          type: string
+        type: array
+      request_id:
+        type: string
+    type: object
+  hook_status:
+    properties:
+      message:
+        description: your operation was successful
+        type: string
+      name:
+        description: responses status nam
+        example: success
+        type: string
+    type: object
   id:
     type: integer
   ip:
@@ -10848,17 +11234,17 @@ definitions:
     type: object
   message_template:
     properties:
-      id:
-        type: integer
-        readOnly: true
-        example: 544880
       account_id:
-        type: integer
-        readOnly: true
         example: 118462
+        readOnly: true
+        type: integer
       brand_id:
         description: brand id number
         example: 5
+        readOnly: true
+        type: integer
+      id:
+        example: 544880
         readOnly: true
         type: integer
       locale:
@@ -10870,9 +11256,9 @@ definitions:
         type: string
       template: {}
       template_class:
-        type: string
-        readOnly: true
         example: email_template
+        readOnly: true
+        type: string
       type:
         description: >-
           Template type that describes the source (sms, voice, email) and
@@ -10994,6 +11380,36 @@ definitions:
           - policy_id
           - configuration
         type: object
+  otp_device:
+    properties:
+      display_name:
+        description: A name for the users device
+        example: Rich's Phone
+        type: string
+      factor_id:
+        description: The identifier of the factor to enroll the user with.
+        example: 16282
+        readOnly: true
+        type: integer
+      number:
+        description: The phone number of the user in E.164 format.
+        example: +1xxxxxxxxxx
+        type: string
+      verified:
+        description: >-
+          Defaults to false. Some factors like SMS or Voice require that a user
+          recieve a token and then that token is supplied to the Verify endpoint
+          before the device is considered active.
+
+          You can set verfied to `true` which indicates the the users phone
+          number is pre verified and the device can be immediately
+          activated.           
+        type: boolean
+    required:
+      - factor_id
+      - display_name
+      - number
+    type: object
   privilege:
     properties:
       description:
@@ -11306,42 +11722,29 @@ definitions:
     required:
       - name
     type: object
-  rule:
+  rule_action:
     properties:
-      actions:
-        items:
-          $ref: '#/definitions/action_obj'
-        type: array
-      conditions:
-        description: >-
-          An array of conditions that the user must meet in order for the rule
-          to be applied.
-        items:
-          $ref: '#/definitions/condition'
-        type: array
-      enabled:
-        description: Indicates if the rule is enabled or not.
-        type: boolean
-      id:
-        description: App Rule ID
-        example: 196670
-        type: integer
-      match:
-        description: Indicates how conditions should be matched.
-        enum:
-          - all
-          - any
-        type: string
       name:
-        description: Rule Name
-        example: My first app rule
+        description: Name of the Action
+        example: Set Role
         type: string
-      position:
+      value:
         description: >-
-          Indicates the order of the rule. When `null` this will default to last
-          position.
-        example: 1
-        type: integer
+          The unique identifier of the action. This should be used when defining
+          actions for a User Mapping.
+        example: add_role
+        type: string
+    type: object
+  rule_condition:
+    properties:
+      name:
+        description: Name of the operator
+        example: Administrators
+        type: string
+      value:
+        description: The condition operator value to use when creating or updating rules.
+        example: '272445'
+        type: string
     type: object
   saml_app:
     allOf:
@@ -11656,7 +12059,7 @@ definitions:
       salt:
         description: The salt value used with the password_algorithm.
         type: string
-      samaccount_name:
+      samaccountname:
         description: The user's Active Directory username.
         type: string
       state:
@@ -11792,6 +12195,8 @@ tags:
     name: User Mappings
   - description: Risk service Endpoint
     name: Vigilance AI
+  - description: Smart Hook extensions
+    name: Smart Hooks
 x-components:
   parameters:
     after:
@@ -11874,6 +12279,11 @@ x-components:
       name: Content-Type
       type: string
       x-example: application/json
+    correlation_id_query:
+      description: Returns logs that contain this correlation_id.
+      in: query
+      name: correlation_id
+      type: string
     created_at:
       in: query
       name: created_at
@@ -11926,6 +12336,12 @@ x-components:
       in: query
       name: enabled
       type: boolean
+    envvar_id_path:
+      description: Set to the id of the Hook Environment Variable that you want to fetch.
+      in: path
+      name: envvar_id
+      required: true
+      type: string
     event_id:
       in: path
       name: event_id
@@ -12043,6 +12459,12 @@ x-components:
       in: query
       name: has_condition_type
       required: false
+      type: string
+    hook_id_path:
+      description: Set to the id of the Hook that you want to return.
+      in: path
+      name: hook_id
+      required: true
       type: string
     id_query:
       in: query
@@ -12179,6 +12601,11 @@ x-components:
       required: true
       type: string
       x-example: <UUID>
+    request_id_query:
+      description: Returns logs that contain this request_id.
+      in: query
+      name: request_id
+      type: string
     resolution:
       in: query
       name: resolution
